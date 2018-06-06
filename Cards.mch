@@ -11,5 +11,7 @@ PROPERTIES
     & cards : CARD_TYPE<->COLORS		// Define cards as a relation between CARD TYPE and COLORS
     & dom(cards |> {BLACK}) = wild	// The black cards must be wild cards
     & ran(wild <| cards) = {BLACK}	// The wild cards must be black
+    & dom(cards |>> {BLACK}) = CARD_TYPE - wild
+    & ran(wild <<| cards) = COLORS - {BLACK}
 
 END

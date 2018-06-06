@@ -2,7 +2,11 @@ MACHINE Game
 
 VARIABLES n_players, curr_player, started
 
-INVARIANT n_players : NAT & n_players : (2..10) & curr_player : (0..(n_players-1)) & started : BOOL
+INVARIANT
+    n_players : NAT
+    & n_players : (2..10)
+    & curr_player : (0..(n_players-1))
+    & started : BOOL
 
 INITIALISATION n_players := 2 || curr_player := 0 || started := FALSE
 
