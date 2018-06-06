@@ -17,7 +17,10 @@ setup_players(nn) =
     THEN n_players := nn
     END;
 
-next_player = curr_player := (curr_player + 1) mod n_players;
+next_player(nn) =
+    PRE nn : {-2, -1, 1, 2}
+    THEN curr_player := (curr_player + n_players + nn) mod n_players
+    END;
 
 set_started(ss) =
     PRE ss : BOOL
