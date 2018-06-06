@@ -10,24 +10,30 @@ PROPERTIES
     FST = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | tt)
     & SND = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | cc)
 
-VARIABLES top_card, deck
+VARIABLES top_card, deck, bb, top_card_color, top_card_type
 
-INVARIANT top_card : cards & deck : seq(cards)
+INVARIANT top_card : cards & deck : seq(cards) & bb : BOOL & top_card_color : COLORS & top_card_type : CARD_TYPE
 
-INITIALISATION top_card :: (cards |>> {BLACK}) || deck :: perm(cards)
+INITIALISATION top_card :: (cards |>> {BLACK}) || deck :: perm(cards) || bb := FALSE || top_card_color :: COLORS || top_card_type :: CARD_TYPE
 
 OPERATIONS
 
 cc <-- get_top_card_type = cc := FST(top_card);
 cc <-- get_top_card_color = cc := SND(top_card);
 
-tt, cc <-- draw_card = ANY vv WHERE vv : cards THEN tt, cc := FST(vv), SND(vv) END;
-
-play_card(tt, cc) =
-PRE tt : CARD_TYPE & cc : COLORS
-THEN skip
+tt, cc <-- draw_card = 
+PRE started = TRUE 
+THEN ANY vv WHERE vv : cards THEN 
+	tt, cc := FST(vv), SND(vv) 
+	END 
 END;
 
-start_game = set_started(TRUE)
+
+play_card(tt, cc) =
+PRE started = TRUE & tt : CARD_TYPE & cc : COLORS & (top_card_type = tt or top_card_color = cc)
+THEN top_card :: (cards |> {cc})
+END;
+
+start_game = set_started(TRUE) || top_card_type := FST(top_card) || top_card_color := SND(top_card)
 
 END
