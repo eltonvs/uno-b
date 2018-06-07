@@ -85,13 +85,39 @@ play_card(tt, cc) =
             END
         END ||
         // Perform special cards actions
-        IF tt : {PLUS_FOUR, BLOCK}
-        THEN next_player(2 * switch_factor)
-        ELSE
-            IF tt = SWITCH
-            THEN switch_factor := switch_factor*(-1) || next_player((-1)*switch_factor)
-            ELSE next_player(switch_factor)
+        IF tt : {BLOCK, PLUS_TWO, PLUS_FOUR}
+        THEN
+            // Skip next player
+            next_player(2 * switch_factor) ||
+            IF tt = PLUS_TWO
+            THEN
+                // Add 2 cards to next player's deck
+                LET np BE np = (curr_player + n_players + switch_factor) mod n_players
+                IN
+                    IF np = 0
+                    THEN
+                        deck_p1, deck := deck_p1 ^ deck /|\ 2, deck \|/ 2
+                    ELSE
+                        deck_p2, deck := deck_p2 ^ deck /|\ 2, deck \|/ 2
+                    END
+                END
+            ELSIF tt = PLUS_FOUR
+            THEN
+                LET np BE np = (curr_player + n_players + switch_factor) mod n_players
+                IN
+                    IF np = 0
+                    THEN
+                        deck_p1, deck := deck_p1 ^ deck /|\ 4, deck \|/ 4
+                    ELSE
+                        deck_p2, deck := deck_p2 ^ deck /|\ 4, deck \|/ 4
+                    END
+                END
             END
+        ELSIF tt = SWITCH
+        THEN
+            switch_factor := switch_factor*(-1) || next_player((-1)*switch_factor)
+        ELSE
+            next_player(switch_factor)
         END
     END;
 
@@ -99,9 +125,9 @@ start_game =
     PRE started = FALSE
     THEN
         // Temporary workaround
-        ANY d1, d2
-        WHERE d1 : iseq(cards) & size(d1) = 7 & d2 : iseq(cards) & size(d2) = 7
-        THEN deck_p1, deck_p2 := d1, d2 || set_started(TRUE)
+        ANY deal
+        WHERE deal : perm(cards-{top_card})
+        THEN deck_p1, deck_p2, deck := deal /|\ 7, (deal \|/ 7) /|\ 7, deal \|/ 14 || set_started(TRUE)
         END
     END
 
