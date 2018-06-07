@@ -2,7 +2,7 @@ MACHINE Uno
 
 EXTENDS Game
 
-SEES Random, Cards
+SEES Cards
 
 ABSTRACT_CONSTANTS FST, SND
 
@@ -27,8 +27,11 @@ cc <-- get_top_card_color = cc := SND(top_card);
 
 tt, cc <-- draw_card =
     PRE started = TRUE
-    THEN ANY vv WHERE vv : ran(deck) THEN
-    	tt, cc := FST(vv), SND(vv)
+    THEN
+        ANY ii WHERE ii : (1..size(deck))
+        THEN
+            tt, cc := FST(deck(ii)), SND(deck(ii))
+            || deck := (deck /|\ (ii - 1)) ^ (deck \|/ ii)
     	END
     END;
 
