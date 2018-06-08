@@ -65,7 +65,7 @@ play_card(tt, cc) =
         & (tt : wild or FST(top_card) = tt or SND(top_card) = cc)
     THEN
         // Update top card
-        top_card := (tt, cc) ||
+        top_card := tt |-> cc ||
         // Perform special cards actions
         IF tt : {BLOCK, PLUS_TWO, PLUS_FOUR}
         THEN
@@ -259,7 +259,10 @@ start_game =
     THEN
         ANY deal
         WHERE deal : perm(cards-{top_card})
-        THEN deck_p1, deck_p2, deck := deal /|\ 7, (deal \|/ 7) /|\ 7, deal \|/ 14 || set_started(TRUE)
+        THEN
+            deck_p1, deck_p2 := deal /|\ 7, (deal \|/ 7) /|\ 7 ||
+            deck := deal \|/ (n_players*7) ||
+            set_started(TRUE)
         END
     END
 
