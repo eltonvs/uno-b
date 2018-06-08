@@ -46,6 +46,10 @@ tt, cc <-- draw_card =
             IF curr_player = 0
             THEN deck_p1 := deck_p1 <- deck(ii)
             ELSE deck_p2 := deck_p2 <- deck(ii)
+            END ||
+            // If the picked up card cannot be played, go to next player
+            IF FST(deck(ii)) /: wild & FST(deck(ii)) /= FST(top_card) & SND(deck(ii)) /= SND(top_card)
+            THEN next_player(switch_factor)
             END
     	END
     END;
