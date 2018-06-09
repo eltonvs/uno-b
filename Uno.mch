@@ -11,7 +11,7 @@ PROPERTIES
     & SND = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | cc)
 
 VARIABLES
-    top_card, switch_factor, deck, deck_p1, deck_p2
+    top_card, switch_factor, deck, deck_p1, deck_p2, said_uno
 
 INVARIANT
     top_card : playable_cards
@@ -20,9 +20,10 @@ INVARIANT
     & deck : seq(cards)
     & deck_p1 : seq(cards)
     & deck_p2 : seq(cards)
+    & said_uno : BOOL
 
 INITIALISATION
-    top_card :: (cards |>> {BLACK}) || switch_factor := 1 || deck :: perm(cards) || deck_p1 := <> || deck_p2 := <>
+    top_card :: (cards |>> {BLACK}) || switch_factor := 1 || deck :: perm(cards) || deck_p1 := <> || deck_p2 := <> || said_uno := FALSE
 
 OPERATIONS
 
@@ -52,6 +53,25 @@ tt, cc <-- draw_card =
             THEN next_player(switch_factor)
             END
     	END
+    END;
+
+say_uno =
+    PRE
+        // The game must be started
+        started = TRUE
+        // User didn't said uno yet
+        & said_uno = FALSE
+        // User has only one card and it's a playable card
+        & (curr_player = 0 =>
+            !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p1) =>
+                pt : wild or pc = BLACK or FST(top_card) = pt or SND(top_card) = pc)
+            & size(deck_p1) = 1)
+        & (curr_player = 1 =>
+            !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p2) =>
+                pt : wild or pc = BLACK or FST(top_card) = pt or SND(top_card) = pc)
+            & size(deck_p2) = 1)
+    THEN
+        said_uno := TRUE
     END;
 
 play_card(tt, cc) =
@@ -88,12 +108,12 @@ play_card(tt, cc) =
                     IF curr_player = 0
                     THEN
                         ANY ii
-                        WHERE ii : (1..size(deck_p1)) & (deck_p1(ii) = (tt, cc) or deck_p1(ii) = (tt, BLACK))
+                        WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
                         THEN deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
                         END
                     ELSE
                         ANY ii
-                        WHERE ii : (1..size(deck_p2)) & (deck_p2(ii) = (tt, cc) or deck_p2(ii) = (tt, BLACK))
+                        WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
                         THEN deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
                         END
                     END
@@ -103,7 +123,7 @@ play_card(tt, cc) =
                     IF curr_player = 0
                     THEN
                         ANY ii
-                        WHERE ii : (1..size(deck_p1)) & (deck_p1(ii) = (tt, cc) or deck_p1(ii) = (tt, BLACK))
+                        WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
                         THEN
                             // Add old top card to deck
                             IF FST(top_card) : wild
@@ -133,7 +153,7 @@ play_card(tt, cc) =
                         END
                     ELSE
                         ANY ii
-                        WHERE ii : (1..size(deck_p2)) & (deck_p2(ii) = (tt, cc) or deck_p2(ii) = (tt, BLACK))
+                        WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
                         THEN
                             // Add old top card to deck
                             IF FST(top_card) : wild
@@ -168,7 +188,7 @@ play_card(tt, cc) =
                     IF curr_player = 0
                     THEN
                         ANY ii
-                        WHERE ii : (1..size(deck_p1)) & (deck_p1(ii) = (tt, cc) or deck_p1(ii) = (tt, BLACK))
+                        WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
                         THEN
                             // Add old top card to deck
                             IF FST(top_card) : wild
@@ -198,7 +218,7 @@ play_card(tt, cc) =
                         END
                     ELSE
                         ANY ii
-                        WHERE ii : (1..size(deck_p2)) & (deck_p2(ii) = (tt, cc) or deck_p2(ii) = (tt, BLACK))
+                        WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
                         THEN
                             // Add old top card to deck
                             IF FST(top_card) : wild
@@ -238,13 +258,13 @@ play_card(tt, cc) =
             IF curr_player = 0
             THEN
                 ANY ii
-                WHERE ii : (1..size(deck_p1)) & (deck_p1(ii) = (tt, cc) or deck_p1(ii) = (tt, BLACK))
+                WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
                 THEN
                     deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
                 END
             ELSE
                 ANY ii
-                WHERE ii : (1..size(deck_p2)) & (deck_p2(ii) = (tt, cc) or deck_p2(ii) = (tt, BLACK))
+                WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
                 THEN
                     deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
                 END
@@ -264,8 +284,8 @@ start_game =
         ANY deal
         WHERE deal : perm(cards-{top_card})
         THEN
-            deck_p1, deck_p2 := deal /|\ 7, (deal \|/ 7) /|\ 7 ||
-            deck := deal \|/ (n_players*7) ||
+            deck_p1, deck_p2 := deal /|\ INI_CARDS, (deal \|/ INI_CARDS) /|\ INI_CARDS ||
+            deck := deal \|/ (n_players*INI_CARDS) ||
             set_started(TRUE)
         END
     END
