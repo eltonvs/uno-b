@@ -358,6 +358,17 @@ start_game =
             deck := deal \|/ (N_PLAYERS*INI_CARDS) ||
             start
         END
+    END;
+
+ww <-- get_winner =
+    PRE
+        started = TRUE & finished = TRUE
+        & (size(deck_p1) = 0 or size(deck_p2) = 0)
+    THEN
+        IF size(deck_p1) = 0
+        THEN ww := 0
+        ELSE ww := 1
+        END
     END
 
 END
