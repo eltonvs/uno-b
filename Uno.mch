@@ -4,11 +4,12 @@ EXTENDS Game
 
 SEES Cards
 
-ABSTRACT_CONSTANTS FST, SND
+ABSTRACT_CONSTANTS FST, SND, PENALTY
 
 PROPERTIES
     FST = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | tt)
     & SND = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | cc)
+    & PENALTY = 2
 
 VARIABLES
     top_card, deck, deck_p1, deck_p2, said_uno
@@ -92,117 +93,237 @@ play_card(tt, cc) =
         // Reset said uno
         said_uno := FALSE ||
         // Perform special cards actions
-        IF tt : {BLOCK, PLUS_TWO, PLUS_FOUR}
+        IF tt = BLOCK
         THEN
-            // Do not call next_player == skip him
-            IF tt = BLOCK
+            IF curr_player = 0
             THEN
-                // Add old top card to deck
-                IF FST(top_card) : WILD
-                THEN deck := (deck <- (FST(top_card), BLACK))
-                ELSE deck := deck <- top_card
-                END ||
-                IF curr_player = 0
+                // Remove played card from player's deck
+                ANY ii
+                WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
-                    // Remove played card from player's deck
-                    ANY ii
-                    WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
-                    THEN deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
-                    END
-                ELSE
-                    ANY ii
-                    WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
-                    THEN deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    THEN
+                        deck_p1 := deck /|\ PENALTY ||
+                        // Add old top card to deck
+                        IF FST(top_card) : WILD
+                        THEN deck := (deck <- (FST(top_card), BLACK)) \|/ PENALTY
+                        ELSE deck := (deck <- top_card) \|/ PENALTY
+                        END
+                    ELSE
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ||
+                        // Add old top card to deck
+                        IF FST(top_card) : WILD
+                        THEN deck := (deck <- (FST(top_card), BLACK))
+                        ELSE deck := deck <- top_card
+                        END
                     END
                 END
-            ELSIF tt = PLUS_TWO
-            THEN
-                IF curr_player = 0
+            ELSE
+                ANY ii
+                WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
-                    ANY ii
-                    WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p2) = 1 & said_uno = FALSE)
                     THEN
-                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        deck_p2 := deck /|\ PENALTY ||
+                        // Add old top card to deck
                         IF FST(top_card) : WILD
-                        THEN
-                            deck := (deck <- (FST(top_card), BLACK)) \|/ 2
-                        ELSE
-                            deck := (deck <- top_card) \|/ 2
-                        END ||
-                        // Add 2 cards from the front of the deck to the next player's deck
-                        deck_p2 := deck_p2 ^ (deck /|\ 2)
-                    END
-                ELSE
-                    ANY ii
-                    WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
-                    THEN
-                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        THEN deck := (deck <- (FST(top_card), BLACK)) \|/ PENALTY
+                        ELSE deck := (deck <- top_card) \|/ PENALTY
+                        END
+                    ELSE
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ||
+                        // Add old top card to deck
                         IF FST(top_card) : WILD
-                        THEN
-                            deck := (deck <- (FST(top_card), BLACK)) \|/ 2
-                        ELSE
-                            deck := (deck <- top_card) \|/ 2
-                        END ||
-                        // Add 2 cards from the front of the deck to the next player's deck
-                        deck_p1 := deck_p1 ^ (deck /|\ 2)
-                    END
-                END
-            ELSIF tt = PLUS_FOUR
-            THEN
-                IF curr_player = 0
-                THEN
-                    ANY ii
-                    WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
-                    THEN
-                        // "Push back" the old top card to deck and "pop front" 4 cards
-                        IF FST(top_card) : WILD
-                        THEN
-                            deck := (deck <- (FST(top_card), BLACK)) \|/ 4
-                        ELSE
-                            deck := (deck <- top_card) \|/ 4
-                        END ||
-                        // Add 4 cards from the front of the deck to the next player's deck
-                        deck_p2 := deck_p2 ^ (deck /|\ 4)
-                    END
-                ELSE
-                    ANY ii
-                    WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
-                    THEN
-                        // "Push back" the old top card to deck and "pop front" 4 cards
-                        IF FST(top_card) : WILD
-                        THEN
-                            deck := (deck <- (FST(top_card), BLACK)) \|/ 4
-                        ELSE
-                            deck := (deck <- top_card) \|/ 4
-                        END ||
-                        // Add 4 cards from the front of the deck to the next player's deck
-                        deck_p1 := deck_p1 ^ (deck /|\ 4)
+                        THEN deck := (deck <- (FST(top_card), BLACK))
+                        ELSE deck := deck <- top_card
+                        END
                     END
                 END
             END
+        ELSIF tt = PLUS_TWO
+        THEN
+            IF curr_player = 0
+            THEN
+                ANY ii
+                WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
+                THEN
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ (2 + PENALTY)
+                        ELSE
+                            deck := (deck <- top_card) \|/ (2 + PENALTY)
+                        END ||
+                        // Remove played card and add PENALTY cards
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ ((deck \|/ 2) /|\ PENALTY)
+                    ELSE
+                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 2
+                        ELSE
+                            deck := (deck <- top_card) \|/ 2
+                        END ||
+                        // Remove played card
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
+                    END ||
+                    // Add 2 cards from the front of the deck to the next player's deck
+                    deck_p2 := deck_p2 ^ (deck /|\ 2)
+                END
+            ELSE
+                ANY ii
+                WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
+                THEN
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ (2 + PENALTY)
+                        ELSE
+                            deck := (deck <- top_card) \|/ (2 + PENALTY)
+                        END ||
+                        // Add 2 cards from the front of the deck to the next player's deck
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ ((deck \|/ 2) /|\ PENALTY)
+                    ELSE
+                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 2
+                        ELSE
+                            deck := (deck <- top_card) \|/ 2
+                        END ||
+                        // Remove played card
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
+                    END ||
+                    // Add 2 cards from the front of the deck to the next player's deck
+                    deck_p1 := deck_p1 ^ (deck /|\ 2)
+                END
+            END
+        ELSIF tt = PLUS_FOUR
+        THEN
+            IF curr_player = 0
+            THEN
+                ANY ii
+                WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
+                THEN
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 4 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ (4 + PENALTY)
+                        ELSE
+                            deck := (deck <- top_card) \|/ (4 + PENALTY)
+                        END ||
+                        // Remove played card and add PENALTY cards
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ ((deck \|/ 4) /|\ PENALTY)
+                    ELSE
+                        // "Push back" the old top card to deck and "pop front" 4 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 4
+                        ELSE
+                            deck := (deck <- top_card) \|/ 4
+                        END ||
+                        // Remove played card
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
+                    END ||
+                    // Add 4 cards from the front of the deck to the next player's deck
+                    deck_p2 := deck_p2 ^ (deck /|\ 4)
+                END
+            ELSE
+                ANY ii
+                WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
+                THEN
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 4 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ (4 + PENALTY)
+                        ELSE
+                            deck := (deck <- top_card) \|/ (4 + PENALTY)
+                        END ||
+                        // Remove played card and add PENALTY cards
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ ((deck \|/ 4) /|\ PENALTY)
+                    ELSE
+                        // "Push back" the old top card to deck and "pop front" 4 cards
+                        IF FST(top_card) : WILD
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 4
+                        ELSE
+                            deck := (deck <- top_card) \|/ 4
+                        END ||
+                        // Remove played card
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
+                    END ||
+                    // Add 4 cards from the front of the deck to the next player's deck
+                    deck_p1 := deck_p1 ^ (deck /|\ 4)
+                END
+            END
         ELSE
-            // Add old top card to deck
-            IF FST(top_card) : WILD
-            THEN deck := deck <- (FST(top_card), BLACK)
-            ELSE deck := deck <- top_card
-            END ||
+            // Go to next player
+            next_player ||
             // Remove played card from player's deck
             IF curr_player = 0
             THEN
                 ANY ii
                 WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
-                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    THEN
+                        // Add old top card to deck
+                        IF FST(top_card) : WILD
+                        THEN deck := (deck <- (FST(top_card), BLACK)) \|/ PENALTY
+                        ELSE deck := (deck <- top_card) \|/ PENALTY
+                        END ||
+                        // Remove played card and add PENALTY cards
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ (deck /|\ PENALTY)
+                    ELSE
+                        // Add old top card to deck
+                        IF FST(top_card) : WILD
+                        THEN deck := deck <- (FST(top_card), BLACK)
+                        ELSE deck := deck <- top_card
+                        END ||
+                        // Remove played card
+                        deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
+                    END
                 END
             ELSE
                 ANY ii
                 WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
-                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
+                    // Add PENALTY cards to player's deck
+                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    THEN
+                        // Add old top card to deck
+                        IF FST(top_card) : WILD
+                        THEN deck := (deck <- (FST(top_card), BLACK)) \|/ PENALTY
+                        ELSE deck := (deck <- top_card) \|/ PENALTY
+                        END ||
+                        // Remove played card and add PENALTY cards
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ (deck /|\ PENALTY)
+                    ELSE
+                        // Add old top card to deck
+                        IF FST(top_card) : WILD
+                        THEN deck := deck <- (FST(top_card), BLACK)
+                        ELSE deck := deck <- top_card
+                        END ||
+                        // Remove played card
+                        deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
+                    END
                 END
-            END ||
-            // Go to next player
-            next_player
+            END
         END
     END;
 
