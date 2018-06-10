@@ -32,7 +32,7 @@ cc <-- get_top_card_color = cc := SND(top_card);
 
 tt, cc <-- draw_card =
     PRE
-        started = TRUE
+        started = TRUE & finished = FALSE
         & (curr_player = 0 =>
             !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p1) =>
                 pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))
@@ -57,8 +57,8 @@ tt, cc <-- draw_card =
 
 say_uno =
     PRE
-        // The game must be started
-        started = TRUE
+        // The game must be started and not finished
+        started = TRUE & finished = FALSE
         // User didn't said uno yet
         & said_uno = FALSE
         // User has only one card and it's a playable card
@@ -76,8 +76,8 @@ say_uno =
 
 play_card(tt, cc) =
     PRE
-        // Checks if the game has started
-        started = TRUE
+        // Checks if the game has started and hasn't finished
+        started = TRUE & finished = FALSE
         // Ensures that the input is a playable card
         & tt : CARD_TYPE & cc : COLORS & (tt, cc) : PLAYABLE_CARDS
         // Checks if the card is on current player's deck
@@ -116,7 +116,9 @@ play_card(tt, cc) =
                         IF FST(top_card) : WILD
                         THEN deck := (deck <- (FST(top_card), BLACK))
                         ELSE deck := deck <- top_card
-                        END
+                        END ||
+                        // Verify if the game has finished
+                        IF size(deck_p1) = 1 THEN finish END
                     END
                 END
             ELSE
@@ -138,7 +140,9 @@ play_card(tt, cc) =
                         IF FST(top_card) : WILD
                         THEN deck := (deck <- (FST(top_card), BLACK))
                         ELSE deck := deck <- top_card
-                        END
+                        END ||
+                        // Verify if the game has finished
+                        IF size(deck_p2) = 1 THEN finish END
                     END
                 END
             END
@@ -169,6 +173,8 @@ play_card(tt, cc) =
                         ELSE
                             deck := (deck <- top_card) \|/ 2
                         END ||
+                        // Verify if the game has finished
+                        IF size(deck_p1) = 1 THEN finish END ||
                         // Remove played card
                         deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
                     END ||
@@ -199,6 +205,8 @@ play_card(tt, cc) =
                         ELSE
                             deck := (deck <- top_card) \|/ 2
                         END ||
+                        // Verify if the game has finished
+                        IF size(deck_p2) = 1 THEN finish END ||
                         // Remove played card
                         deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
                     END ||
@@ -233,6 +241,8 @@ play_card(tt, cc) =
                         ELSE
                             deck := (deck <- top_card) \|/ 4
                         END ||
+                        // Verify if the game has finished
+                        IF size(deck_p1) = 1 THEN finish END ||
                         // Remove played card
                         deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
                     END ||
@@ -263,6 +273,8 @@ play_card(tt, cc) =
                         ELSE
                             deck := (deck <- top_card) \|/ 4
                         END ||
+                        // Verify if the game has finished
+                        IF size(deck_p2) = 1 THEN finish END ||
                         // Remove played card
                         deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
                     END ||
@@ -271,11 +283,14 @@ play_card(tt, cc) =
                 END
             END
         ELSE
-            // Go to next player
-            next_player ||
-            // Remove played card from player's deck
             IF curr_player = 0
             THEN
+                // Verify if the game has finished
+                IF (size(deck_p1) = 1 & said_uno = TRUE)
+                THEN finish
+                ELSE next_player // Go to next player
+                END ||
+                // Remove played card from player's deck
                 ANY ii
                 WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
@@ -300,6 +315,12 @@ play_card(tt, cc) =
                     END
                 END
             ELSE
+                // Verify if the game has finished
+                IF (size(deck_p2) = 1 & said_uno = TRUE)
+                THEN finish
+                ELSE next_player // Go to next player
+                END ||
+                // Remove played card from player's deck
                 ANY ii
                 WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
@@ -328,14 +349,14 @@ play_card(tt, cc) =
     END;
 
 start_game =
-    PRE started = FALSE
+    PRE started = FALSE or finished = TRUE
     THEN
         ANY deal
         WHERE deal : perm(CARDS-{top_card})
         THEN
             deck_p1, deck_p2 := deal /|\ INI_CARDS, (deal \|/ INI_CARDS) /|\ INI_CARDS ||
             deck := deal \|/ (N_PLAYERS*INI_CARDS) ||
-            set_started(TRUE)
+            start
         END
     END
 
