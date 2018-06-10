@@ -11,19 +11,18 @@ PROPERTIES
     & SND = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | cc)
 
 VARIABLES
-    top_card, switch_factor, deck, deck_p1, deck_p2, said_uno
+    top_card, deck, deck_p1, deck_p2, said_uno
 
 INVARIANT
     top_card : playable_cards
     & SND(top_card) /= BLACK
-    & switch_factor : {-1, 1}
     & deck : seq(cards)
     & deck_p1 : seq(cards)
     & deck_p2 : seq(cards)
     & said_uno : BOOL
 
 INITIALISATION
-    top_card :: (cards |>> {BLACK}) || switch_factor := 1 || deck :: perm(cards) || deck_p1 := <> || deck_p2 := <> || said_uno := FALSE
+    top_card :: (cards |>> {BLACK}) || deck :: perm(cards) || deck_p1 := <> || deck_p2 := <> || said_uno := FALSE
 
 OPERATIONS
 
@@ -50,7 +49,7 @@ tt, cc <-- draw_card =
             END ||
             // If the picked up card cannot be played, go to next player
             IF FST(deck(ii)) /: wild & FST(deck(ii)) /= FST(top_card) & SND(deck(ii)) /= SND(top_card)
-            THEN next_player(switch_factor)
+            THEN next_player
             END
     	END
     END;
@@ -90,161 +89,94 @@ play_card(tt, cc) =
     THEN
         // Update top card
         top_card := tt |-> cc ||
+        // Reset said uno
+        said_uno := FALSE ||
         // Perform special cards actions
         IF tt : {BLOCK, PLUS_TWO, PLUS_FOUR}
         THEN
-            // Skip next player
-            next_player(2 * switch_factor) ||
-            LET np BE np = (curr_player + n_players + switch_factor) mod n_players
-            IN
-                IF tt = BLOCK
+            // Do not call next_player == skip him
+            IF tt = BLOCK
+            THEN
+                // Add old top card to deck
+                IF FST(top_card) : wild
+                THEN deck := (deck <- (FST(top_card), BLACK))
+                ELSE deck := deck <- top_card
+                END ||
+                IF curr_player = 0
                 THEN
-                    // Add old top card to deck
-                    IF FST(top_card) : wild
-                    THEN deck := (deck <- (FST(top_card), BLACK))
-                    ELSE deck := deck <- top_card
-                    END ||
                     // Remove played card from player's deck
-                    IF curr_player = 0
-                    THEN
-                        ANY ii
-                        WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
-                        THEN deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
-                        END
-                    ELSE
-                        ANY ii
-                        WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
-                        THEN deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
-                        END
+                    ANY ii
+                    WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
+                    THEN deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii)
                     END
-                ELSIF tt = PLUS_TWO
-                THEN
-                    // Remove played card from player's deck
-                    IF curr_player = 0
-                    THEN
-                        ANY ii
-                        WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
-                        THEN
-                            // Add old top card to deck
-                            IF FST(top_card) : wild
-                            THEN
-                                // Add 2 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ (deck /|\ 2) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 2
-                                ELSE
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ||
-                                    deck_p2 := deck_p2 ^ (deck /|\ 2) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 2
-                                END
-                            ELSE
-                                // Add 2 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ (deck /|\ 2) ||
-                                    deck := (deck <- top_card) \|/ 2
-                                ELSE
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ||
-                                    deck_p2 := deck_p2 ^ (deck /|\ 2) ||
-                                    deck := (deck <- top_card) \|/ 2
-                                END
-                            END
-                        END
-                    ELSE
-                        ANY ii
-                        WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
-                        THEN
-                            // Add old top card to deck
-                            IF FST(top_card) : wild
-                            THEN
-                                // Add 2 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ||
-                                    deck_p1 := deck_p1 ^ (deck /|\ 2) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 2
-                                ELSE
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ (deck /|\ 2) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 2
-                                END
-                            ELSE
-                                // Add 2 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ||
-                                    deck_p1 := deck_p1 ^ (deck /|\ 2) ||
-                                    deck := (deck <- top_card) \|/ 2
-                                ELSE
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ (deck /|\ 2) ||
-                                    deck := (deck <- top_card) \|/ 2
-                                END
-                            END
-                        END
+                ELSE
+                    ANY ii
+                    WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
+                    THEN deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
                     END
-                ELSIF tt = PLUS_FOUR
+                END
+            ELSIF tt = PLUS_TWO
+            THEN
+                IF curr_player = 0
                 THEN
-                    // Remove played card from player's deck
-                    IF curr_player = 0
+                    ANY ii
+                    WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
                     THEN
-                        ANY ii
-                        WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
+                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        IF FST(top_card) : wild
                         THEN
-                            // Add old top card to deck
-                            IF FST(top_card) : wild
-                            THEN
-                                // Add 4 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ (deck /|\ 4) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 4
-                                ELSE
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ||
-                                    deck_p2 := deck_p2 ^ (deck /|\ 4) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 4
-                                END
-                            ELSE
-                                // Add 4 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ^ (deck /|\ 4) ||
-                                    deck := (deck <- top_card) \|/ 4
-                                ELSE
-                                    deck_p1 := (deck_p1 /|\ (ii - 1)) ^ (deck_p1 \|/ ii) ||
-                                    deck_p2 := deck_p2 ^ (deck /|\ 4) ||
-                                    deck := (deck <- top_card) \|/ 4
-                                END
-                            END
-                        END
-                    ELSE
-                        ANY ii
-                        WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 2
+                        ELSE
+                            deck := (deck <- top_card) \|/ 2
+                        END ||
+                        // Add 2 cards from the front of the deck to the next player's deck
+                        deck_p2 := deck_p2 ^ (deck /|\ 2)
+                    END
+                ELSE
+                    ANY ii
+                    WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 2 cards
+                        IF FST(top_card) : wild
                         THEN
-                            // Add old top card to deck
-                            IF FST(top_card) : wild
-                            THEN
-                                // Add 4 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ (deck /|\ 4) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 4
-                                ELSE
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ (deck /|\ 4) ||
-                                    deck := (deck <- (FST(top_card), BLACK)) \|/ 4
-                                END
-                            ELSE
-                                // Add 4 cards to next player's deck
-                                IF np = 0
-                                THEN
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ||
-                                    deck_p1 := deck_p1 ^ (deck /|\ 4) ||
-                                    deck := (deck <- top_card) \|/ 4
-                                ELSE
-                                    deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii) ^ (deck /|\ 4) ||
-                                    deck := (deck <- top_card) \|/ 4
-                                END
-                            END
-                        END
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 2
+                        ELSE
+                            deck := (deck <- top_card) \|/ 2
+                        END ||
+                        // Add 2 cards from the front of the deck to the next player's deck
+                        deck_p1 := deck_p1 ^ (deck /|\ 2)
+                    END
+                END
+            ELSIF tt = PLUS_FOUR
+            THEN
+                IF curr_player = 0
+                THEN
+                    ANY ii
+                    WHERE ii : (1..size(deck_p1)) & ((tt /: wild & deck_p1(ii) = (tt, cc)) or (tt : wild & deck_p1(ii) = (tt, BLACK)))
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 4 cards
+                        IF FST(top_card) : wild
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 4
+                        ELSE
+                            deck := (deck <- top_card) \|/ 4
+                        END ||
+                        // Add 4 cards from the front of the deck to the next player's deck
+                        deck_p2 := deck_p2 ^ (deck /|\ 4)
+                    END
+                ELSE
+                    ANY ii
+                    WHERE ii : (1..size(deck_p2)) & ((tt /: wild & deck_p2(ii) = (tt, cc)) or (tt : wild & deck_p2(ii) = (tt, BLACK)))
+                    THEN
+                        // "Push back" the old top card to deck and "pop front" 4 cards
+                        IF FST(top_card) : wild
+                        THEN
+                            deck := (deck <- (FST(top_card), BLACK)) \|/ 4
+                        ELSE
+                            deck := (deck <- top_card) \|/ 4
+                        END ||
+                        // Add 4 cards from the front of the deck to the next player's deck
+                        deck_p1 := deck_p1 ^ (deck /|\ 4)
                     END
                 END
             END
@@ -269,12 +201,8 @@ play_card(tt, cc) =
                     deck_p2 := (deck_p2 /|\ (ii - 1)) ^ (deck_p2 \|/ ii)
                 END
             END ||
-            IF tt = SWITCH
-            THEN
-                switch_factor := switch_factor*(-1) || next_player((-1)*switch_factor)
-            ELSE
-                next_player(switch_factor)
-            END
+            // Go to next player
+            next_player
         END
     END;
 
@@ -285,7 +213,7 @@ start_game =
         WHERE deal : perm(cards-{top_card})
         THEN
             deck_p1, deck_p2 := deal /|\ INI_CARDS, (deal \|/ INI_CARDS) /|\ INI_CARDS ||
-            deck := deal \|/ (n_players*INI_CARDS) ||
+            deck := deal \|/ (N_PLAYERS*INI_CARDS) ||
             set_started(TRUE)
         END
     END
