@@ -4,25 +4,25 @@ SETS
     CARD_TYPE = {ZERO, ONE, TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, PLUS_TWO, BLOCK, SWITCH, PLUS_FOUR, JOKER};
     COLORS = {RED, GREEN, BLUE, YELLOW, BLACK}
 
-ABSTRACT_CONSTANTS wild, cards, playable_cards
+ABSTRACT_CONSTANTS WILD, CARDS, PLAYABLE_CARDS
 
 PROPERTIES
     // Define wild cards
-    wild = {PLUS_FOUR, JOKER}
+    WILD = {PLUS_FOUR, JOKER}
     // Define cards as a relation between CARD TYPE and COLORS
-    & cards : CARD_TYPE<->COLORS
+    & CARDS : CARD_TYPE<->COLORS
     // The black cards must be wild cards
-    & dom(cards |> {BLACK}) = wild
+    & dom(CARDS |> {BLACK}) = WILD
     // The wild cards must be black
-    & ran(wild <| cards) = {BLACK}
+    & ran(WILD <| CARDS) = {BLACK}
     // The non black cards must not be wild
-    & dom(cards |>> {BLACK}) = CARD_TYPE - wild
+    & dom(CARDS |>> {BLACK}) = CARD_TYPE - WILD
     // The non wild cards must not be black
-    & ran(wild <<| cards) = COLORS - {BLACK}
+    & ran(WILD <<| CARDS) = COLORS - {BLACK}
     // All non-wild cards must appear on cards in all colors
-    & !(tt) . (tt : CARD_TYPE - wild =>
-        !(cc) . (cc : COLORS-{BLACK} => (tt, cc) : cards))
+    & !(tt) . (tt : CARD_TYPE - WILD =>
+        !(cc) . (cc : COLORS-{BLACK} => (tt, cc) : CARDS))
     // Defines playable cards as all combinations of non-black cards
-    & playable_cards = CARD_TYPE*(COLORS-{BLACK})
+    & PLAYABLE_CARDS = CARD_TYPE*(COLORS-{BLACK})
 
 END
