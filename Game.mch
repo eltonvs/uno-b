@@ -1,23 +1,36 @@
 MACHINE Game
 
-VARIABLES n_players, curr_player, started
+CONSTANTS N_PLAYERS, INI_CARDS
 
-INVARIANT n_players : NAT & n_players : (2..10) & curr_player : (0..(n_players-1)) & started : BOOL
+PROPERTIES
+    N_PLAYERS = 2
+    & INI_CARDS = 7
 
-INITIALISATION n_players := 2 || curr_player := 0 || started := FALSE
+VARIABLES curr_player, started, finished
+
+INVARIANT
+    curr_player : (0..N_PLAYERS-1)
+    & started : BOOL
+    & finished : BOOL
+    & (finished = TRUE => started = TRUE)
+
+INITIALISATION curr_player := 0 || started := FALSE || finished := FALSE
 
 OPERATIONS
 
-setup_players(nn) =
-    PRE nn : (2..10) & started = FALSE
-    THEN n_players := nn
+next_player =
+    PRE started = TRUE & finished = FALSE
+    THEN curr_player := (curr_player + 1) mod N_PLAYERS
     END;
 
-next_player = curr_player := (curr_player + 1) mod n_players;
+start =
+    PRE started = FALSE or finished = TRUE
+    THEN started, finished := TRUE, FALSE
+    END;
 
-set_started(ss) =
-    PRE ss : BOOL
-    THEN started := ss
+finish =
+    PRE started = TRUE & finished = FALSE
+    THEN finished := TRUE
     END
 
 END
