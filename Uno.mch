@@ -4,11 +4,16 @@ EXTENDS Game
 
 SEES Cards
 
-ABSTRACT_CONSTANTS FST, SND, PENALTY
+ABSTRACT_CONSTANTS
+    FST, SND, CAN_PLAY, PENALTY
 
 PROPERTIES
     FST = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | tt)
     & SND = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | cc)
+    & CAN_PLAY =
+        %(t1, c1, t2, c2) .
+            (t1 : CARD_TYPE & c1 : COLORS & t2 : CARD_TYPE & c2 : COLORS
+                | bool(t1 : WILD or t1 = t1 or c1 = c2))
     & PENALTY = 2
 
 VARIABLES
@@ -35,10 +40,10 @@ tt, cc <-- draw_card =
         started = TRUE & finished = FALSE
         & (curr_player = 0 =>
             !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p1) =>
-                pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))
+                CAN_PLAY(pt, pc, FST(top_card), SND(top_card)) = FALSE))
         & (curr_player = 1 =>
             !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p2) =>
-                pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))
+                CAN_PLAY(pt, pc, FST(top_card), SND(top_card)) = FALSE))
     THEN
         // Draw the top card from deck
         tt, cc, deck := FST(first(deck)), SND(first(deck)), tail(deck) ||
@@ -47,7 +52,7 @@ tt, cc <-- draw_card =
         ELSE deck_p2 := deck_p2 <- first(deck)
         END ||
         // If the picked up card cannot be played, go to next player
-        IF FST(first(deck)) /: WILD & FST(first(deck)) /= FST(top_card) & SND(first(deck)) /= SND(top_card)
+        IF CAN_PLAY(FST(first(deck)), SND(first(deck)), FST(top_card), SND(top_card)) = FALSE
         THEN next_player
         END
     END;
@@ -62,11 +67,11 @@ say_uno =
         & (curr_player = 0 =>
             size(deck_p1) = 2
             & not(!(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p1) =>
-                (pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))))
+                CAN_PLAY(pt, pc, FST(top_card), SND(top_card)) = FALSE)))
         & (curr_player = 1 =>
             size(deck_p2) = 2
             & not(!(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p2) =>
-                (pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))))
+                CAN_PLAY(pt, pc, FST(top_card), SND(top_card)) = FALSE)))
     THEN
         said_uno := TRUE
     END;
@@ -82,8 +87,8 @@ play_card(tt, cc) =
             (tt /: WILD => (tt, cc) : ran(deck_p1)) & (tt : WILD => (tt, BLACK) : ran(deck_p1)))
         & (curr_player = 1 =>
             (tt /: WILD => (tt, cc) : ran(deck_p2)) & (tt : WILD => (tt, BLACK) : ran(deck_p2)))
-        // Checks if the card matches with the top card
-        & (tt : WILD or FST(top_card) = tt or SND(top_card) = cc)
+        // Checks if the card can be played
+        & CAN_PLAY(tt, cc, FST(top_card), SND(top_card)) = TRUE
     THEN
         // Update top card
         top_card := tt |-> cc ||
