@@ -61,15 +61,15 @@ say_uno =
         started = TRUE & finished = FALSE
         // User didn't said uno yet
         & said_uno = FALSE
-        // User has only one card and it's a playable card
+        // User has two cards and at least one is a playable card
         & (curr_player = 0 =>
-            !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p1) =>
-                pt : WILD or pc = BLACK or FST(top_card) = pt or SND(top_card) = pc)
-            & size(deck_p1) = 1)
+            size(deck_p1) = 2
+            & not(!(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p1) =>
+                (pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))))
         & (curr_player = 1 =>
-            !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p2) =>
-                pt : WILD or pc = BLACK or FST(top_card) = pt or SND(top_card) = pc)
-            & size(deck_p2) = 1)
+            size(deck_p2) = 2
+            & not(!(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p2) =>
+                (pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))))
     THEN
         said_uno := TRUE
     END;
@@ -102,7 +102,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    IF size(deck_p1) = 2 & said_uno = FALSE
                     THEN
                         deck_p1 := deck /|\ PENALTY ||
                         // Add old top card to deck
@@ -126,7 +126,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    IF size(deck_p2) = 2 & said_uno = FALSE
                     THEN
                         deck_p2 := deck /|\ PENALTY ||
                         // Add old top card to deck
@@ -154,7 +154,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    IF size(deck_p1) = 2 & said_uno = FALSE
                     THEN
                         // "Push back" the old top card to deck and "pop front" 2 cards
                         IF FST(top_card) : WILD
@@ -186,7 +186,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    IF size(deck_p2) = 2 & said_uno = FALSE
                     THEN
                         // "Push back" the old top card to deck and "pop front" 2 cards
                         IF FST(top_card) : WILD
@@ -222,7 +222,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    IF size(deck_p1) = 2 & said_uno = FALSE
                     THEN
                         // "Push back" the old top card to deck and "pop front" 4 cards
                         IF FST(top_card) : WILD
@@ -254,7 +254,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    IF size(deck_p2) = 2 & said_uno = FALSE
                     THEN
                         // "Push back" the old top card to deck and "pop front" 4 cards
                         IF FST(top_card) : WILD
@@ -286,7 +286,7 @@ play_card(tt, cc) =
             IF curr_player = 0
             THEN
                 // Verify if the game has finished
-                IF (size(deck_p1) = 1 & said_uno = TRUE)
+                IF size(deck_p1) = 1
                 THEN finish
                 ELSE next_player // Go to next player
                 END ||
@@ -295,7 +295,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p1)) & ((tt /: WILD & deck_p1(ii) = (tt, cc)) or (tt : WILD & deck_p1(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p1) = 1 & said_uno = FALSE)
+                    IF (size(deck_p1) = 2 & said_uno = FALSE)
                     THEN
                         // Add old top card to deck
                         IF FST(top_card) : WILD
@@ -316,7 +316,7 @@ play_card(tt, cc) =
                 END
             ELSE
                 // Verify if the game has finished
-                IF (size(deck_p2) = 1 & said_uno = TRUE)
+                IF size(deck_p2) = 1
                 THEN finish
                 ELSE next_player // Go to next player
                 END ||
@@ -325,7 +325,7 @@ play_card(tt, cc) =
                 WHERE ii : (1..size(deck_p2)) & ((tt /: WILD & deck_p2(ii) = (tt, cc)) or (tt : WILD & deck_p2(ii) = (tt, BLACK)))
                 THEN
                     // Add PENALTY cards to player's deck
-                    IF (size(deck_p2) = 1 & said_uno = FALSE)
+                    IF size(deck_p2) = 2 & said_uno = FALSE
                     THEN
                         // Add old top card to deck
                         IF FST(top_card) : WILD
