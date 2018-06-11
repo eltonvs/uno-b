@@ -40,19 +40,16 @@ tt, cc <-- draw_card =
             !(pt, pc) . (pt : CARD_TYPE & pc : COLORS & (pt, pc) : ran(deck_p2) =>
                 pt /: WILD & pc /= BLACK & FST(top_card) /= pt & SND(top_card) /= pc))
     THEN
-        ANY ii WHERE ii : (1..size(deck))
-        THEN
-            tt, cc := FST(deck(ii)), SND(deck(ii)) ||
-            deck := (deck /|\ (ii - 1)) ^ (deck \|/ ii) ||
-            IF curr_player = 0
-            THEN deck_p1 := deck_p1 <- deck(ii)
-            ELSE deck_p2 := deck_p2 <- deck(ii)
-            END ||
-            // If the picked up card cannot be played, go to next player
-            IF FST(deck(ii)) /: WILD & FST(deck(ii)) /= FST(top_card) & SND(deck(ii)) /= SND(top_card)
-            THEN next_player
-            END
-    	END
+        // Draw the top card from deck
+        tt, cc, deck := FST(first(deck)), SND(first(deck)), tail(deck) ||
+        IF curr_player = 0
+        THEN deck_p1 := deck_p1 <- first(deck)
+        ELSE deck_p2 := deck_p2 <- first(deck)
+        END ||
+        // If the picked up card cannot be played, go to next player
+        IF FST(first(deck)) /: WILD & FST(first(deck)) /= FST(top_card) & SND(first(deck)) /= SND(top_card)
+        THEN next_player
+        END
     END;
 
 say_uno =
