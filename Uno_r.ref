@@ -1,0 +1,151 @@
+REFINEMENT Uno_r
+REFINES Uno
+
+SEES Cards, Uno_ctx
+
+ABSTRACT_CONSTANTS CAN_PLAY, PENALTY, N_PLAYERS, INI_CARDS
+
+VARIABLES
+    tc_t, tc_c, d_t, d_c, d1_t, d1_c, d2_t, d2_c, lst_d, lst_d1, lst_d2, curr_player, said_uno, started, finished
+
+INVARIANT
+    tc_t = FST(top_card)
+    & tc_c = SND(top_card)
+    & d_t : (0..size(deck)-1) >+> CARD_TYPE
+    & d_c : (0..size(deck)-1) >+> COLORS
+    & d1_t : (0..size(deck_p1)-1) >+> CARD_TYPE
+    & d1_c : (0..size(deck_p1)-1) >+> COLORS
+    & d2_t : (0..size(deck_p2)-1) >+> CARD_TYPE
+    & d2_c : (0..size(deck_p2)-1) >+> COLORS
+    & lst_d : (0..size(deck))
+    & lst_d1 : NAT
+    & lst_d2 : NAT
+    & dom(ran(deck)) = ran(d_t)
+    & ran(ran(deck)) = ran(d_c)
+    & !(ii) . (ii : dom(deck) => deck(ii) = (d_t(ii - 1), d_c(ii - 1)))
+    & lst_d = size(deck)
+    & lst_d1 = size(deck_p1)
+    & lst_d2 = size(deck_p2)
+
+INITIALISATION
+    tc_t := INITIAL_DECK_T(0)
+    || tc_c := INITIAL_DECK_C(0)
+    || d_t := INITIAL_DECK_T
+    || d_c := INITIAL_DECK_C
+    || d1_t := {}
+    || d1_c := {}
+    || d2_t := {}
+    || d2_c := {}
+    || lst_d := max(dom(INITIAL_DECK_T)) + 1
+    || lst_d1 := 0
+    || lst_d2 := 0
+    || curr_player := 0
+    || said_uno := FALSE
+    || started := FALSE
+    || finished := FALSE
+
+OPERATIONS
+
+cc <-- get_top_card_type = cc := tc_t;
+cc <-- get_top_card_color = cc := tc_c;
+
+tt, cc <-- draw_card =
+    BEGIN
+        // Draw the top card from deck
+        tt := d_t(0);
+        cc := d_c(0);
+
+        lst_d := lst_d - 1;
+        d_t := %(ii) . (ii : 0..lst_d - 1 | d_t(ii + 1));
+        d_c := %(ii) . (ii : 0..lst_d - 1 | d_c(ii + 1));
+
+        // Put the drawn card on the player's deck
+        IF curr_player = 0
+        THEN
+            d1_t(lst_d1) := tt;
+            d1_c(lst_d1) := cc;
+            lst_d1 := lst_d1 + 1
+        ELSE
+            d2_t(lst_d1) := tt;
+            d2_c(lst_d1) := cc;
+            lst_d2 := lst_d2 + 1
+        END;
+        // If the picked up card cannot be played, go to next player
+        IF CAN_PLAY(tt, cc, tc_t, tc_c) = FALSE
+        THEN curr_player := (curr_player + 1) mod N_PLAYERS
+        END
+    END;
+
+say_uno = said_uno := TRUE;
+
+play_card(tt, cc) =
+    BEGIN
+        // Add top card to the end of the deck
+        d_t(lst_d) := tc_t;
+        d_c(lst_d) := tc_c;
+        lst_d := lst_d + 1;
+        // Put played card as top card
+        tc_t := tt;
+        tc_c := cc;
+
+        IF curr_player = 0
+        THEN
+            // Remove card from the player 1 deck
+            ANY pp
+            WHERE pp : 0..(lst_d1 - 1) & (tt : WILD => d1_t(pp) = tt & d1_c(pp) = BLACK) & (tt /: WILD => d1_t(pp) = tt & d1_c(pp) = cc)
+            THEN
+                // remove pp
+                d1_t := %(ii) . (ii : 0..(pp - 1) | d1_t(ii)) \/ %(ii) . (ii : pp..(lst_d1 - 1) | d1_t(ii + 1));
+                d1_c := %(ii) . (ii : 0..(pp - 1) | d1_c(ii)) \/ %(ii) . (ii : pp..(lst_d1 - 1) | d1_c(ii + 1));
+                lst_d1 := lst_d1 - 1
+            END
+        ELSE
+            // Remove card from the player 2 deck
+            ANY pp
+            WHERE pp : 0..(lst_d2 - 1) & (tt : WILD => d2_t(pp) = tt & d2_c(pp) = BLACK) & (tt /: WILD => d2_t(pp) = tt & d2_c(pp) = cc)
+            THEN
+                // remove pp
+                d2_t := %(ii) . (ii : 0..(pp - 1) | d2_t(ii)) \/ %(ii) . (ii : pp..(lst_d2 - 1) | d2_t(ii + 1));
+                d2_c := %(ii) . (ii : 0..(pp - 1) | d2_c(ii)) \/ %(ii) . (ii : pp..(lst_d2 - 1) | d2_c(ii + 1));
+                lst_d2 := lst_d2 - 1
+            END
+        END;
+        // Reset said uno
+        said_uno := FALSE
+    END;
+
+start_game = 
+    BEGIN
+        // Setup top card
+        tc_t := d_t(0);
+        tc_c := d_c(0);
+
+        // Create the player 1 deck
+        d1_t := %(ii) . (ii : 0..INI_CARDS - 1 | d_t(ii + 1));
+        d1_c := %(ii) . (ii : 0..INI_CARDS - 1 | d_c(ii + 1));
+        lst_d1 := INI_CARDS;
+
+        // Create the player 2 deck
+        d2_t := %(ii) . (ii : 0..INI_CARDS - 1 | d_t(ii + INI_CARDS + 1));
+        d2_c := %(ii) . (ii : 0..INI_CARDS - 1 | d_c(ii + INI_CARDS + 1));
+        lst_d2 := INI_CARDS;
+
+        // Remove cards from main deck
+        VAR rm_cards IN
+            rm_cards := INI_CARDS*N_PLAYERS + 1;
+
+            d_t := %(ii) . (ii : 0..(lst_d - rm_cards - 1) | d_t(ii + rm_cards));
+            d_c := %(ii) . (ii : 0..(lst_d - rm_cards - 1) | d_c(ii + rm_cards));
+            lst_d := lst_d - rm_cards
+        END;
+        // Start Game
+        started, finished := TRUE, FALSE
+    END;
+
+ww <-- get_winner =
+    IF lst_d1 = 0
+    THEN ww := 0
+    ELSE ww := 1
+    END
+
+END
