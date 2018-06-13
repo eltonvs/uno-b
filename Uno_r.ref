@@ -3,7 +3,7 @@ REFINES Uno
 
 SEES Cards, Uno_ctx
 
-ABSTRACT_CONSTANTS CAN_PLAY, PENALTY, N_PLAYERS, INI_CARDS
+ABSTRACT_CONSTANTS PENALTY, N_PLAYERS, INI_CARDS
 
 VARIABLES
     tc_t, tc_c, d_t, d_c, d1_t, d1_c, d2_t, d2_c, lst_d, lst_d1, lst_d2, curr_player, said_uno, started, finished
@@ -24,8 +24,14 @@ INVARIANT
     & ran(ran(deck)) = ran(d_c)
     & !(ii) . (ii : dom(deck) => deck(ii) = (d_t(ii - 1), d_c(ii - 1)))
     & lst_d = size(deck)
+    & card(d_t) = lst_d
+    & card(d_c) = lst_d
     & lst_d1 = size(deck_p1)
+    & card(d1_t) = lst_d1
+    & card(d1_c) = lst_d1
     & lst_d2 = size(deck_p2)
+    & card(d2_t) = lst_d2
+    & card(d2_c) = lst_d2
 
 INITIALISATION
     tc_t := INITIAL_DECK_T(0)
@@ -71,7 +77,7 @@ tt, cc <-- draw_card =
             lst_d2 := lst_d2 + 1
         END;
         // If the picked up card cannot be played, go to next player
-        IF CAN_PLAY(tt, cc, tc_t, tc_c) = FALSE
+        IF tt /: WILD & cc /= BLACK & tt /= tc_t & cc /= tc_c
         THEN curr_player := (curr_player + 1) mod N_PLAYERS
         END
     END;
@@ -82,8 +88,14 @@ play_card(tt, cc) =
     BEGIN
         // Add top card to the end of the deck
         d_t(lst_d) := tc_t;
-        d_c(lst_d) := tc_c;
+        IF tc_t : WILD
+        THEN
+            d_c(lst_d) := BLACK
+        ELSE
+            d_c(lst_d) := tc_c
+        END;
         lst_d := lst_d + 1;
+
         // Put played card as top card
         tc_t := tt;
         tc_c := cc;
@@ -95,9 +107,19 @@ play_card(tt, cc) =
             WHERE pp : 0..(lst_d1 - 1) & (tt : WILD => d1_t(pp) = tt & d1_c(pp) = BLACK) & (tt /: WILD => d1_t(pp) = tt & d1_c(pp) = cc)
             THEN
                 // remove pp
-                d1_t := %(ii) . (ii : 0..(pp - 1) | d1_t(ii)) \/ %(ii) . (ii : pp..(lst_d1 - 1) | d1_t(ii + 1));
-                d1_c := %(ii) . (ii : 0..(pp - 1) | d1_c(ii)) \/ %(ii) . (ii : pp..(lst_d1 - 1) | d1_c(ii + 1));
+                d1_t := %(ii) . (ii : 0..(pp - 1) | d1_t(ii)) \/ %(ii) . (ii : pp..(lst_d1 - 2) | d1_t(ii + 1));
+                d1_c := %(ii) . (ii : 0..(pp - 1) | d1_c(ii)) \/ %(ii) . (ii : pp..(lst_d1 - 2) | d1_c(ii + 1));
                 lst_d1 := lst_d1 - 1
+            END;
+            // Check for penalty
+            IF lst_d1 = 2 & said_uno = FALSE
+            THEN
+                d1_t := d1_t \/ % (ii) . (ii : lst_d1..(lst_d1 + PENALTY - 1) | d_t(lst_d + ii - lst_d1));
+                d1_c := d1_c \/ % (ii) . (ii : lst_d1..(lst_d1 + PENALTY - 1) | d_c(lst_d + ii - lst_d1));
+                lst_d1 := lst_d1 + PENALTY;
+                lst_d := lst_d - PENALTY;
+                d_t := %(ii) . (ii : 0..(lst_d - 1) | d1_t(ii));
+                d_c := %(ii) . (ii : 0..(lst_d - 1) | d1_c(ii))
             END
         ELSE
             // Remove card from the player 2 deck
@@ -105,11 +127,67 @@ play_card(tt, cc) =
             WHERE pp : 0..(lst_d2 - 1) & (tt : WILD => d2_t(pp) = tt & d2_c(pp) = BLACK) & (tt /: WILD => d2_t(pp) = tt & d2_c(pp) = cc)
             THEN
                 // remove pp
-                d2_t := %(ii) . (ii : 0..(pp - 1) | d2_t(ii)) \/ %(ii) . (ii : pp..(lst_d2 - 1) | d2_t(ii + 1));
-                d2_c := %(ii) . (ii : 0..(pp - 1) | d2_c(ii)) \/ %(ii) . (ii : pp..(lst_d2 - 1) | d2_c(ii + 1));
+                d2_t := %(ii) . (ii : 0..(pp - 1) | d2_t(ii)) \/ %(ii) . (ii : pp..(lst_d2 - 2) | d2_t(ii + 1));
+                d2_c := %(ii) . (ii : 0..(pp - 1) | d2_c(ii)) \/ %(ii) . (ii : pp..(lst_d2 - 2) | d2_c(ii + 1));
                 lst_d2 := lst_d2 - 1
+            END;
+            // Check for penalty
+            IF lst_d2 = 2 & said_uno = FALSE
+            THEN
+                d2_t := d2_t \/ % (ii) . (ii : lst_d2..(lst_d2 + PENALTY - 1) | d_t(lst_d + ii - lst_d2));
+                d2_c := d2_c \/ % (ii) . (ii : lst_d2..(lst_d2 + PENALTY - 1) | d_c(lst_d + ii - lst_d2));
+                lst_d2 := lst_d2 + PENALTY;
+                lst_d := lst_d - PENALTY;
+                d_t := %(ii) . (ii : 0..(lst_d - 1) | d1_t(ii));
+                d_c := %(ii) . (ii : 0..(lst_d - 1) | d1_c(ii))
             END
         END;
+
+        IF tc_t = PLUS_TWO
+        THEN
+            IF curr_player = 0
+            THEN
+                d2_t := d2_t \/ % (ii) . (ii : lst_d2..(lst_d2 + 1) | d_t(lst_d + ii - lst_d2));
+                d2_c := d2_c \/ % (ii) . (ii : lst_d2..(lst_d2 + 1) | d_c(lst_d + ii - lst_d2));
+                lst_d2 := lst_d2 + 2;
+                lst_d := lst_d - 2;
+                d_t := %(ii) . (ii : 0..(lst_d - 1) | d1_t(ii));
+                d_c := %(ii) . (ii : 0..(lst_d - 1) | d1_c(ii))
+            ELSE
+                d1_t := d1_t \/ % (ii) . (ii : lst_d1..(lst_d1 + 1) | d_t(lst_d + ii - lst_d1));
+                d1_c := d1_c \/ % (ii) . (ii : lst_d1..(lst_d1 + 1) | d_c(lst_d + ii - lst_d1));
+                lst_d1 := lst_d1 + 2;
+                lst_d := lst_d - 2;
+                d_t := %(ii) . (ii : 0..(lst_d - 1) | d1_t(ii));
+                d_c := %(ii) . (ii : 0..(lst_d - 1) | d1_c(ii))
+            END
+        ELSIF tc_t = PLUS_FOUR
+        THEN
+            IF curr_player = 0
+            THEN
+                d2_t := d2_t \/ % (ii) . (ii : lst_d2..(lst_d2 + 3) | d_t(lst_d + ii - lst_d2));
+                d2_c := d2_c \/ % (ii) . (ii : lst_d2..(lst_d2 + 3) | d_c(lst_d + ii - lst_d2));
+                lst_d2 := lst_d2 + 4;
+                lst_d := lst_d - 4;
+                d_t := %(ii) . (ii : 0..(lst_d - 1) | d1_t(ii));
+                d_c := %(ii) . (ii : 0..(lst_d - 1) | d1_c(ii))
+            ELSE
+                d1_t := d1_t \/ % (ii) . (ii : lst_d1..(lst_d1 + 3) | d_t(lst_d + ii - lst_d1));
+                d1_c := d1_c \/ % (ii) . (ii : lst_d1..(lst_d1 + 3) | d_c(lst_d + ii - lst_d1));
+                lst_d1 := lst_d1 + 4;
+                lst_d := lst_d - 4;
+                d_t := %(ii) . (ii : 0..(lst_d - 1) | d1_t(ii));
+                d_c := %(ii) . (ii : 0..(lst_d - 1) | d1_c(ii))
+            END
+        ELSIF tc_t /= BLOCK
+        THEN
+            // skip player
+            curr_player := (curr_player + 1) mod N_PLAYERS
+        END;
+
+        // Checks if the game has finished
+        IF lst_d1 = 0 or lst_d2 = 0 THEN finished := TRUE END;
+
         // Reset said uno
         said_uno := FALSE
     END;
