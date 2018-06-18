@@ -1,9 +1,9 @@
 MACHINE Uno
 
-SEES Cards
+SEES Cards, Uno_ctx
 
 ABSTRACT_CONSTANTS
-    FST, SND, CAN_PLAY, PENALTY, N_PLAYERS, INI_CARDS
+    FST, SND, CAN_PLAY
 
 PROPERTIES
     FST = %(tt, cc) . (tt : CARD_TYPE & cc : COLORS | tt)
@@ -12,9 +12,6 @@ PROPERTIES
         %(t1, c1, t2, c2) .
             (t1 : CARD_TYPE & c1 : COLORS & t2 : CARD_TYPE & c2 : COLORS
                 | bool(t1 : WILD or t1 = t1 or c1 = c2))
-    & PENALTY = 2
-    & N_PLAYERS = 2
-    & INI_CARDS = 7
 
 VARIABLES
     top_card, deck, deck_p1, deck_p2, curr_player, said_uno, started, finished

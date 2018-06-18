@@ -2,10 +2,16 @@ MACHINE Uno_ctx
 
 SEES Cards
 
-ABSTRACT_CONSTANTS INITIAL_DECK_T, INITIAL_DECK_C
+CONCRETE_CONSTANTS PENALTY, N_PLAYERS, INI_CARDS, NUM_CARDS, INITIAL_DECK_T, INITIAL_DECK_C
 
 PROPERTIES
-    INITIAL_DECK_T = {
+    PENALTY = 2
+    & N_PLAYERS = 2
+    & INI_CARDS = 7
+    & NUM_CARDS = 54
+    & INITIAL_DECK_T : (0..(NUM_CARDS - 1)) --> CARD_TYPE
+    & INITIAL_DECK_C : (0..(NUM_CARDS - 1)) --> COLORS
+    & INITIAL_DECK_T = {
         0 |-> ZERO, 1 |-> ZERO, 2 |-> ZERO, 3 |-> ZERO, 4 |-> ONE,
         5 |-> ONE, 6 |-> ONE, 7 |-> ONE, 8 |-> TWO, 9 |-> TWO,
         10 |-> TWO, 11 |-> TWO, 12 |-> THREE, 13 |-> THREE, 14 |-> THREE,
@@ -31,14 +37,5 @@ PROPERTIES
         45 |-> GREEN, 46 |-> BLUE, 47 |-> YELLOW, 48 |-> RED, 49 |-> GREEN,
         50 |-> BLUE, 51 |-> YELLOW, 52 |-> BLACK, 53 |-> BLACK
     }
-
-OPERATIONS
-
-cc <-- get_cc = cc := (0..6) <| INITIAL_DECK_T;
-
-dd <-- get_dd =
-    BEGIN
-        dd := %(ii) . (ii : 0..6 | INITIAL_DECK_T(ii + 7))
-    END
 
 END

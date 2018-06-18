@@ -8,9 +8,10 @@ ABSTRACT_CONSTANTS WILD, CARDS, PLAYABLE_CARDS
 
 PROPERTIES
     // Define wild cards
-    WILD = {PLUS_FOUR, JOKER}
+    WILD <: CARD_TYPE
+    & WILD = {PLUS_FOUR, JOKER}
     // Define cards as a relation between CARD TYPE and COLORS
-    & CARDS : CARD_TYPE<->COLORS
+    & CARDS <: CARD_TYPE*COLORS
     // The black cards must be wild cards
     & dom(CARDS |> {BLACK}) = WILD
     // The wild cards must be black
@@ -23,6 +24,7 @@ PROPERTIES
     & !(tt) . (tt : CARD_TYPE - WILD =>
         !(cc) . (cc : COLORS-{BLACK} => (tt, cc) : CARDS))
     // Defines playable cards as all combinations of non-black cards
+    & PLAYABLE_CARDS <: CARDS
     & PLAYABLE_CARDS = CARD_TYPE*(COLORS-{BLACK})
 
 END
