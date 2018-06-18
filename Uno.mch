@@ -11,7 +11,7 @@ PROPERTIES
     & CAN_PLAY =
         %(t1, c1, t2, c2) .
             (t1 : CARD_TYPE & c1 : COLORS & t2 : CARD_TYPE & c2 : COLORS
-                | bool(t1 : WILD or t1 = t1 or c1 = c2))
+                | bool(t1 : WILD or t1 = t2 or c1 = c2))
 
 VARIABLES
     top_card, deck, deck_p1, deck_p2, curr_player, said_uno, started, finished
@@ -43,7 +43,7 @@ OPERATIONS
 cc <-- get_top_card_type = cc := FST(top_card);
 cc <-- get_top_card_color = cc := SND(top_card);
 
-tt, cc <-- draw_card =
+draw_card =
     PRE
         started = TRUE & finished = FALSE
         & (curr_player = 0 =>
@@ -54,7 +54,7 @@ tt, cc <-- draw_card =
                 CAN_PLAY(pt, pc, FST(top_card), SND(top_card)) = FALSE))
     THEN
         // Draw the top card from deck
-        tt, cc, deck := FST(first(deck)), SND(first(deck)), tail(deck) ||
+        deck := tail(deck) ||
         IF curr_player = 0
         THEN deck_p1 := deck_p1 <- first(deck)
         ELSE deck_p2 := deck_p2 <- first(deck)

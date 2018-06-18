@@ -1,3 +1,12 @@
 bdp/
-lang/
 *.prob
+
+# Ignore Object Files
+*.o
+lang/build/*
+
+# Ignore Compiled Files
+lang/bin/*
+
+# Do not ignore .gikeep files
+!*.gitkeep
