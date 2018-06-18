@@ -3,14 +3,13 @@ REFINES Uno
 
 SEES Cards, Uno_ctx
 
-ABSTRACT_CONSTANTS PENALTY, N_PLAYERS, INI_CARDS
-
 VARIABLES
     tc_t, tc_c, d_t, d_c, d1_t, d1_c, d2_t, d2_c, lst_d, lst_d1, lst_d2, curr_player, said_uno, started, finished
 
 INVARIANT
-    tc_t = FST(top_card)
-    & tc_c = SND(top_card)
+    tc_t : CARD_TYPE
+    & tc_c : COLORS
+    & (tc_t, tc_c) = (top_card)
     & d_t : (0..size(deck)-1) >+> CARD_TYPE
     & d_c : (0..size(deck)-1) >+> COLORS
     & d1_t : (0..size(deck_p1)-1) >+> CARD_TYPE

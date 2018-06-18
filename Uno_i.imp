@@ -1,0 +1,416 @@
+IMPLEMENTATION Uno_i
+REFINES Uno
+
+SEES Cards, Uno_ctx
+
+// Change to an array mapping to boolean
+// Every user has the entire deck (mapped to false), his deck corresponds to the cards mapped to true (the same occurs to the main deck) -- can use a robust solution to all operations too, returning a status with the result
+// Create another machine to generate cards (with a while...)
+CONCRETE_VARIABLES
+    tc_i, tc_c,
+    ideck, deck1, deck2, d_map_t, d_map_c,
+    curr_player, said_uno, started, finished
+
+INVARIANT
+    tc_i : (0..53)
+    & tc_c : COLORS
+    & ideck : (0..53) --> BOOL
+    & deck1 : (0..53) --> BOOL
+    & deck2 : (0..53) --> BOOL
+    & d_map_t : (0..53) --> CARD_TYPE
+    & d_map_c : (0..53) --> COLORS
+    & (ideck |> {TRUE}) /\ (deck1 |> {TRUE}) /\ (deck2 |> {TRUE}) = {}
+    & (ideck |> {TRUE}) \/ (deck1 |> {TRUE}) \/ (deck2 |> {TRUE}) = ((0..53))*{TRUE}
+    & d_map_t(tc_i) = prj1(CARD_TYPE, COLORS)(top_card)
+    & ran(dom(ideck |> {TRUE}) - {tc_i} <| d_map_t) = dom(ran(deck))
+    & ran(dom(ideck |> {TRUE}) - {tc_i} <| d_map_c) = ran(ran(deck))
+    & ran(dom(deck1 |> {TRUE}) <| d_map_t) = dom(ran(deck_p1))
+    & ran(dom(deck1 |> {TRUE}) <| d_map_c) = ran(ran(deck_p1))
+    & ran(dom(deck2 |> {TRUE}) <| d_map_t) = dom(ran(deck_p2))
+    & ran(dom(deck2 |> {TRUE}) <| d_map_c) = ran(ran(deck_p2))
+
+INITIALISATION
+    tc_i := 0;
+    tc_c := INITIAL_DECK_C(0);
+    d_map_t := INITIAL_DECK_T;
+    d_map_c := INITIAL_DECK_C;
+    ideck := (0..53)*{TRUE};
+    deck1 := (0..53)*{FALSE};
+    deck2 := (0..53)*{FALSE};
+    curr_player := 0;
+    said_uno := FALSE;
+    started := FALSE;
+    finished := FALSE
+
+OPERATIONS
+
+cc <-- get_top_card_type = cc := d_map_t(tc_i);
+cc <-- get_top_card_color = cc := tc_c;
+
+tt, cc <-- draw_card =
+    BEGIN
+        // Draw the top card from deck
+        VAR idx IN
+            idx := 0;
+            VAR ii, sw IN
+                ii := 0;
+                sw := FALSE;
+                WHILE ii < NUM_CARDS & sw = FALSE DO
+                    VAR res IN
+                        res := ideck(ii);
+                        IF res = TRUE
+                        THEN
+                            idx := ii;
+                            tt := d_map_t(ii);
+                            cc := d_map_c(ii);
+                            ideck(ii) := FALSE;
+                            sw := TRUE
+                        END
+                    END;
+                    ii := ii + 1
+                INVARIANT !(jj) . (jj : (0..ii) => ideck(jj) = FALSE)
+                VARIANT NUM_CARDS - ii
+                END
+            END;
+
+            // Put the drawn card on the player's deck
+            IF curr_player = 0
+            THEN
+                deck1(idx) := TRUE
+            ELSE
+                deck2(idx) := TRUE
+            END;
+
+            // Initialize tt and cc
+            tt := d_map_t(idx);
+            cc := d_map_c(idx);
+            // If the picked up card cannot be played, go to next player
+            VAR tc_tp IN
+                tc_tp := d_map_t(tc_i);
+                IF (tt /= JOKER & tt /= PLUS_FOUR) & cc /= BLACK & tt /= tc_tp & cc /= tc_c
+                THEN curr_player := (curr_player + 1) mod N_PLAYERS
+                END
+            END
+        END
+    END;
+
+say_uno = said_uno := TRUE;
+
+play_card(tt, cc) =
+    BEGIN
+        // Switch top card with the played card
+        VAR ii, sw IN
+            ii := 0;
+            sw := FALSE;
+            // Find played card
+            WHILE ii < NUM_CARDS & sw = FALSE DO
+                VAR res1, res2 IN
+                    res1 := d_map_t(ii);
+                    res2 := d_map_c(ii);
+                    IF res1 = tt & (((tt /= JOKER & tt /= PLUS_FOUR) & res2 = cc) or ((tt = JOKER or tt = PLUS_FOUR) & res2 = BLACK))
+                    THEN
+                        // Set top card
+                        tc_i := ii;
+                        tc_c := cc;
+                        // Remove card from player's deck
+                        IF curr_player = 0
+                        THEN deck1(tc_i) := FALSE
+                        ELSE deck2(tc_i) := FALSE
+                        END;
+                        // "Break"
+                        sw := TRUE
+                    END
+                END;
+                ii := ii + 1
+            INVARIANT !(jj) . (jj : (0..(ii - 1)) =>
+                    d_map_t(jj) /= tt
+                    & ((tt /= JOKER & tt /= PLUS_FOUR) => d_map_c(jj) /= cc)
+                    & ((tt = JOKER or tt = PLUS_FOUR) => d_map_c(jj) /= BLACK))
+            VARIANT NUM_CARDS - ii
+            END
+        END;
+
+        // INFO: The played card is now "stored" on top card
+
+        // Check for penalty
+        IF curr_player = 0
+        THEN
+            VAR ii, count IN
+                ii := 0;
+                count := 0;
+                // Get number of cards from player
+                WHILE ii < NUM_CARDS DO
+                    VAR res IN
+                        res := deck1(ii);
+                        IF res = TRUE
+                        THEN
+                            count := count + 1
+                        END
+                    END;
+                    ii := ii + 1
+                INVARIANT count = card((0..(ii-1)) <| deck1 |> {TRUE})
+                VARIANT NUM_CARDS - ii
+                END;
+
+                IF count = 1 & said_uno = FALSE
+                THEN
+                    // put 2 cards on player's deck
+                    VAR nc IN
+                        ii := 0;
+                        nc := 0;
+                        WHILE ii < NUM_CARDS & nc < PENALTY DO
+                            VAR res IN
+                                res := ideck(ii);
+                                IF res = TRUE
+                                THEN
+                                    ideck(ii) := FALSE;
+                                    deck1(ii) := TRUE;
+                                    nc := nc + 1
+                                END
+                            END
+                        INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) <= count + PENALTY
+                        VARIANT PENALTY - nc
+                        END
+                    END
+                END
+            END
+        ELSE
+            VAR ii, count IN
+                ii := 0;
+                count := 0;
+                // Get number of cards from player
+                WHILE ii < NUM_CARDS DO
+                    VAR res IN
+                        res := deck2(ii);
+                        IF res = TRUE
+                        THEN
+                            count := count + 1
+                        END
+                    END;
+                    ii := ii + 1
+                INVARIANT count = card((0..(ii-1)) <| deck2 |> {TRUE})
+                VARIANT NUM_CARDS - ii
+                END;
+
+                IF count = 1 & said_uno = FALSE
+                THEN
+                    // put 2 cards on player's deck
+                    VAR nc IN
+                        ii := 0;
+                        nc := 0;
+                        WHILE ii < NUM_CARDS & nc < PENALTY DO
+                            VAR res IN
+                                res := ideck(ii);
+                                IF res = TRUE
+                                THEN
+                                    ideck(ii) := FALSE;
+                                    deck2(ii) := TRUE;
+                                    nc := nc + 1
+                                END
+                            END
+                        INVARIANT card((0..(ii-1)) <| deck2 |> {TRUE}) <= count + PENALTY
+                        VARIANT PENALTY - nc
+                        END
+                    END
+                END
+            END
+        END;
+
+        VAR tc_tp IN
+            tc_tp := d_map_t(tc_i);
+
+            IF tc_tp = PLUS_TWO
+            THEN
+                IF curr_player = 0
+                THEN
+                    // Insert 2 cards to player 2 deck
+                    VAR ii, nc, count IN
+                        ii := 0;
+                        nc := 0;
+                        count := 0;
+                        WHILE ii < NUM_CARDS & nc < 2 DO
+                            VAR res, res2 IN
+                                res := ideck(ii);
+                                res2 := deck2(ii);
+                                IF res = TRUE
+                                THEN
+                                    ideck(ii) := FALSE;
+                                    deck2(ii) := TRUE;
+                                    nc := nc + 1
+                                ELSIF res2 = TRUE
+                                THEN
+                                    count := count + 1
+                                END
+                            END
+                        INVARIANT card((0..(ii-1)) <| deck2 |> {TRUE}) <= count + 2
+                        VARIANT 2 - nc
+                        END
+                    END
+                ELSE
+                    // Insert 2 cards to player 1 deck
+                    VAR ii, nc, count IN
+                        ii := 0;
+                        nc := 0;
+                        count := 0;
+                        WHILE ii < NUM_CARDS & nc < 2 DO
+                            VAR res, res2 IN
+                                res := ideck(ii);
+                                res2 := deck1(ii);
+                                IF res = TRUE
+                                THEN
+                                    ideck(ii) := FALSE;
+                                    deck1(ii) := TRUE;
+                                    nc := nc + 1
+                                ELSIF res2 = TRUE
+                                THEN
+                                    count := count + 1
+                                END
+                            END
+                        INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) <= count + 2
+                        VARIANT 2 - nc
+                        END
+                    END
+                END
+            ELSIF tc_tp = PLUS_FOUR
+            THEN
+                IF curr_player = 0
+                THEN
+                    // Insert 4 cards to player 2 deck
+                    VAR ii, nc, count IN
+                        ii := 0;
+                        nc := 0;
+                        count := 0;
+                        WHILE ii < NUM_CARDS & nc < 4 DO
+                            VAR res, res2 IN
+                                res := ideck(ii);
+                                res2 := deck2(ii);
+                                IF res = TRUE
+                                THEN
+                                    ideck(ii) := FALSE;
+                                    deck2(ii) := TRUE;
+                                    nc := nc + 1
+                                ELSIF res2 = TRUE
+                                THEN
+                                    count := count + 1
+                                END
+                            END
+                        INVARIANT card((0..(ii-1)) <| deck2 |> {TRUE}) <= count + 4
+                        VARIANT 4 - nc
+                        END
+                    END
+                ELSE
+                    // Insert 4 cards to player 1 deck
+                    VAR ii, nc, count IN
+                        ii := 0;
+                        nc := 0;
+                        count := 0;
+                        WHILE ii < NUM_CARDS & nc < 4 DO
+                            VAR res, res2 IN
+                                res := ideck(ii);
+                                res2 := deck1(ii);
+                                IF res = TRUE
+                                THEN
+                                    ideck(ii) := FALSE;
+                                    deck1(ii) := TRUE;
+                                    nc := nc + 1
+                                ELSIF res2 = TRUE
+                                THEN
+                                    count := count + 1
+                                END
+                            END
+                        INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) <= count + 4
+                        VARIANT 4 - nc
+                        END
+                    END
+                END
+            ELSIF tc_tp /= BLOCK
+            THEN
+                // skip player
+                curr_player := (curr_player + 1) mod N_PLAYERS
+            END
+        END;
+
+        VAR count1, count2, ii IN
+            count1 := 0;
+            count2 := 0;
+            ii := 0;
+            WHILE ii < NUM_CARDS DO
+                VAR res1, res2 IN
+                    res1 := deck1(ii);
+                    res2 := deck2(ii);
+                    IF res1 = TRUE
+                    THEN count1 := count1 + 1
+                    ELSIF res2 = TRUE
+                    THEN count2 := count2 + 1
+                    END
+                END
+            INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) = count1 & card((0..(ii-1)) <| deck2 |> {TRUE}) = count2
+            VARIANT NUM_CARDS - ii
+            END;
+            // Checks if the game has finished
+            IF count1 = 0 or count2 = 0 THEN finished := TRUE END
+        END;
+
+        // Reset said uno
+        said_uno := FALSE
+    END;
+
+start_game =
+    BEGIN
+        // Rerun initialization
+        ideck := (0..53)*{TRUE};
+        deck1 := (0..53)*{FALSE};
+        deck2 := (0..53)*{FALSE};
+
+        // Setup top card
+        tc_i := 0;
+        tc_c := d_map_c(0);
+
+        VAR ii, lst IN
+            ii := 1; // Ignore top card
+            // Create the player 1 deck
+            lst := INI_CARDS + 1;
+            WHILE ii < lst DO
+                deck1(ii) := TRUE;
+                ideck(ii) := FALSE
+            INVARIANT !(jj) . (jj : (1..(ii - 1)) => ideck(jj) = FALSE & deck1(jj) = TRUE)
+            VARIANT INI_CARDS - ii
+            END;
+            // Create the player 2 deck
+            lst := 2*INI_CARDS;
+            WHILE ii < lst DO
+                deck2(ii) := TRUE;
+                ideck(ii) := FALSE
+            INVARIANT !(jj) . (jj : (INI_CARDS..(ii - 1)) => ideck(jj) = FALSE & deck2(jj) = TRUE)
+            VARIANT INI_CARDS - ii
+            END
+        END;
+
+        // Start Game
+        started := TRUE;
+        finished := FALSE
+    END;
+
+ww <-- get_winner =
+    VAR ii, e1 IN
+        ii := 0;
+        e1 := TRUE;
+        WHILE ii < NUM_CARDS & e1 = TRUE DO
+            VAR res IN
+                res := deck1(ii);
+                IF res = TRUE
+                THEN
+                    e1 := FALSE
+                END
+            END;
+            ii := ii + 1
+        INVARIANT !(jj) . (jj : (0..(ii-1)) => deck1(jj) = FALSE)
+        VARIANT NUM_CARDS - ii
+        END;
+        IF e1 = TRUE
+        THEN ww := 0
+        ELSE ww := 1
+        END
+    END
+
+END

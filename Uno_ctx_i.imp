@@ -1,17 +1,14 @@
-MACHINE Uno_ctx
+IMPLEMENTATION Uno_ctx_i
+REFINES Uno_ctx
 
 SEES Cards
 
-CONCRETE_CONSTANTS PENALTY, N_PLAYERS, INI_CARDS, NUM_CARDS, INITIAL_DECK_T, INITIAL_DECK_C
-
-PROPERTIES
-    PENALTY = 2
-    & N_PLAYERS = 2
-    & INI_CARDS = 7
-    & NUM_CARDS = 54
-    & INITIAL_DECK_T : (0..53) --> CARD_TYPE
-    & INITIAL_DECK_C : (0..53) --> COLORS
-    & INITIAL_DECK_T = {
+VALUES
+    PENALTY = 2;
+    N_PLAYERS = 2;
+    INI_CARDS = 7;
+    NUM_CARDS = 54;
+    INITIAL_DECK_T = {
         0 |-> ZERO, 1 |-> ZERO, 2 |-> ZERO, 3 |-> ZERO, 4 |-> ONE,
         5 |-> ONE, 6 |-> ONE, 7 |-> ONE, 8 |-> TWO, 9 |-> TWO,
         10 |-> TWO, 11 |-> TWO, 12 |-> THREE, 13 |-> THREE, 14 |-> THREE,
@@ -23,8 +20,8 @@ PROPERTIES
         40 |-> PLUS_TWO, 41 |-> PLUS_TWO, 42 |-> PLUS_TWO, 43 |-> PLUS_TWO, 44 |-> BLOCK,
         45 |-> BLOCK, 46 |-> BLOCK, 47 |-> BLOCK, 48 |-> SWITCH, 49 |-> SWITCH,
         50 |-> SWITCH, 51 |-> SWITCH, 52 |-> PLUS_FOUR, 53 |-> JOKER
-    }
-    & INITIAL_DECK_C = {
+    };
+    INITIAL_DECK_C = {
         0 |-> RED, 1 |-> GREEN, 2 |-> BLUE, 3 |-> YELLOW, 4 |-> RED,
         5 |->  GREEN, 6 |-> BLUE, 7 |-> YELLOW, 8 |-> RED, 9 |-> GREEN,
         10 |-> BLUE, 11 |-> YELLOW, 12 |-> RED, 13 |-> GREEN, 14 |-> BLUE,
