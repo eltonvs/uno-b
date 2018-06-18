@@ -24,7 +24,6 @@ PROPERTIES
     & !(tt) . (tt : CARD_TYPE - WILD =>
         !(cc) . (cc : COLORS-{BLACK} => (tt, cc) : CARDS))
     // Defines playable cards as all combinations of non-black cards
-    & PLAYABLE_CARDS <: CARDS
     & PLAYABLE_CARDS = CARD_TYPE*(COLORS-{BLACK})
 
 END

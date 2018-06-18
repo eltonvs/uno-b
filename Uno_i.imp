@@ -3,9 +3,6 @@ REFINES Uno
 
 SEES Cards, Uno_ctx
 
-// Change to an array mapping to boolean
-// Every user has the entire deck (mapped to false), his deck corresponds to the cards mapped to true (the same occurs to the main deck) -- can use a robust solution to all operations too, returning a status with the result
-// Create another machine to generate cards (with a while...)
 CONCRETE_VARIABLES
     tc_i, tc_c,
     ideck, deck1, deck2, d_map_t, d_map_c,
@@ -47,7 +44,7 @@ OPERATIONS
 cc <-- get_top_card_type = cc := d_map_t(tc_i);
 cc <-- get_top_card_color = cc := tc_c;
 
-tt, cc <-- draw_card =
+draw_card =
     BEGIN
         // Draw the top card from deck
         VAR idx IN
@@ -61,8 +58,6 @@ tt, cc <-- draw_card =
                         IF res = TRUE
                         THEN
                             idx := ii;
-                            tt := d_map_t(ii);
-                            cc := d_map_c(ii);
                             ideck(ii) := FALSE;
                             sw := TRUE
                         END
@@ -82,13 +77,15 @@ tt, cc <-- draw_card =
             END;
 
             // Initialize tt and cc
-            tt := d_map_t(idx);
-            cc := d_map_c(idx);
-            // If the picked up card cannot be played, go to next player
-            VAR tc_tp IN
-                tc_tp := d_map_t(tc_i);
-                IF (tt /= JOKER & tt /= PLUS_FOUR) & cc /= BLACK & tt /= tc_tp & cc /= tc_c
-                THEN curr_player := (curr_player + 1) mod N_PLAYERS
+            VAR tt, cc IN
+                tt := d_map_t(idx);
+                cc := d_map_c(idx);
+                // If the picked up card cannot be played, go to next player
+                VAR tc_tp IN
+                    tc_tp := d_map_t(tc_i);
+                    IF (tt /= JOKER & tt /= PLUS_FOUR) & cc /= BLACK & tt /= tc_tp & cc /= tc_c
+                    THEN curr_player := (curr_player + 1) mod N_PLAYERS
+                    END
                 END
             END
         END
@@ -207,7 +204,8 @@ play_card(tt, cc) =
                                     deck2(ii) := TRUE;
                                     nc := nc + 1
                                 END
-                            END
+                            END;
+                            ii := ii + 1
                         INVARIANT card((0..(ii-1)) <| deck2 |> {TRUE}) <= count + PENALTY
                         VARIANT PENALTY - nc
                         END
@@ -241,7 +239,8 @@ play_card(tt, cc) =
                                 THEN
                                     count := count + 1
                                 END
-                            END
+                            END;
+                            ii := ii + 1
                         INVARIANT card((0..(ii-1)) <| deck2 |> {TRUE}) <= count + 2
                         VARIANT 2 - nc
                         END
@@ -265,7 +264,8 @@ play_card(tt, cc) =
                                 THEN
                                     count := count + 1
                                 END
-                            END
+                            END;
+                            ii := ii + 1
                         INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) <= count + 2
                         VARIANT 2 - nc
                         END
@@ -293,7 +293,8 @@ play_card(tt, cc) =
                                 THEN
                                     count := count + 1
                                 END
-                            END
+                            END;
+                            ii := ii + 1
                         INVARIANT card((0..(ii-1)) <| deck2 |> {TRUE}) <= count + 4
                         VARIANT 4 - nc
                         END
@@ -317,7 +318,8 @@ play_card(tt, cc) =
                                 THEN
                                     count := count + 1
                                 END
-                            END
+                            END;
+                            ii := ii + 1
                         INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) <= count + 4
                         VARIANT 4 - nc
                         END
@@ -343,7 +345,8 @@ play_card(tt, cc) =
                     ELSIF res2 = TRUE
                     THEN count2 := count2 + 1
                     END
-                END
+                END;
+                ii := ii + 1
             INVARIANT card((0..(ii-1)) <| deck1 |> {TRUE}) = count1 & card((0..(ii-1)) <| deck2 |> {TRUE}) = count2
             VARIANT NUM_CARDS - ii
             END;
@@ -372,7 +375,8 @@ start_game =
             lst := INI_CARDS + 1;
             WHILE ii < lst DO
                 deck1(ii) := TRUE;
-                ideck(ii) := FALSE
+                ideck(ii) := FALSE;
+                ii := ii + 1
             INVARIANT !(jj) . (jj : (1..(ii - 1)) => ideck(jj) = FALSE & deck1(jj) = TRUE)
             VARIANT INI_CARDS - ii
             END;
@@ -380,7 +384,8 @@ start_game =
             lst := 2*INI_CARDS;
             WHILE ii < lst DO
                 deck2(ii) := TRUE;
-                ideck(ii) := FALSE
+                ideck(ii) := FALSE;
+                ii := ii + 1
             INVARIANT !(jj) . (jj : (INI_CARDS..(ii - 1)) => ideck(jj) = FALSE & deck2(jj) = TRUE)
             VARIANT INI_CARDS - ii
             END

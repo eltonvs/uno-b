@@ -54,30 +54,32 @@ OPERATIONS
 cc <-- get_top_card_type = cc := tc_t;
 cc <-- get_top_card_color = cc := tc_c;
 
-tt, cc <-- draw_card =
+draw_card =
     BEGIN
-        // Draw the top card from deck
-        tt := d_t(0);
-        cc := d_c(0);
-
-        lst_d := lst_d - 1;
-        d_t := %(ii) . (ii : 0..lst_d - 1 | d_t(ii + 1));
-        d_c := %(ii) . (ii : 0..lst_d - 1 | d_c(ii + 1));
-
-        // Put the drawn card on the player's deck
-        IF curr_player = 0
-        THEN
-            d1_t(lst_d1) := tt;
-            d1_c(lst_d1) := cc;
-            lst_d1 := lst_d1 + 1
-        ELSE
-            d2_t(lst_d1) := tt;
-            d2_c(lst_d1) := cc;
-            lst_d2 := lst_d2 + 1
-        END;
-        // If the picked up card cannot be played, go to next player
-        IF tt /: WILD & cc /= BLACK & tt /= tc_t & cc /= tc_c
-        THEN curr_player := (curr_player + 1) mod N_PLAYERS
+        VAR tt, cc IN
+            // Draw the top card from deck
+            tt := d_t(0);
+            cc := d_c(0);
+    
+            lst_d := lst_d - 1;
+            d_t := %(ii) . (ii : 0..lst_d - 1 | d_t(ii + 1));
+            d_c := %(ii) . (ii : 0..lst_d - 1 | d_c(ii + 1));
+    
+            // Put the drawn card on the player's deck
+            IF curr_player = 0
+            THEN
+                d1_t(lst_d1) := tt;
+                d1_c(lst_d1) := cc;
+                lst_d1 := lst_d1 + 1
+            ELSE
+                d2_t(lst_d1) := tt;
+                d2_c(lst_d1) := cc;
+                lst_d2 := lst_d2 + 1
+            END;
+            // If the picked up card cannot be played, go to next player
+            IF tt /: WILD & cc /= BLACK & tt /= tc_t & cc /= tc_c
+            THEN curr_player := (curr_player + 1) mod N_PLAYERS
+            END
         END
     END;
 
