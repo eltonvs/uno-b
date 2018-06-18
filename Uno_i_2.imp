@@ -1,5 +1,5 @@
-IMPLEMENTATION Uno_i
-REFINES Uno
+IMPLEMENTATION Uno_i_2
+REFINES Uno_r
 
 SEES Cards, Uno_ctx
 
@@ -21,13 +21,13 @@ INVARIANT
     & d_map_c : (0..53) --> COLORS
     & (ideck |> {TRUE}) /\ (deck1 |> {TRUE}) /\ (deck2 |> {TRUE}) = {}
     & (ideck |> {TRUE}) \/ (deck1 |> {TRUE}) \/ (deck2 |> {TRUE}) = ((0..53))*{TRUE}
-    & d_map_t(tc_i) = prj1(CARD_TYPE, COLORS)(top_card)
-    & ran(dom(ideck |> {TRUE}) - {tc_i} <| d_map_t) = dom(ran(deck))
-    & ran(dom(ideck |> {TRUE}) - {tc_i} <| d_map_c) = ran(ran(deck))
-    & ran(dom(deck1 |> {TRUE}) <| d_map_t) = dom(ran(deck_p1))
-    & ran(dom(deck1 |> {TRUE}) <| d_map_c) = ran(ran(deck_p1))
-    & ran(dom(deck2 |> {TRUE}) <| d_map_t) = dom(ran(deck_p2))
-    & ran(dom(deck2 |> {TRUE}) <| d_map_c) = ran(ran(deck_p2))
+    & d_map_t(tc_i) = tc_t
+    & ran(dom(ideck |> {TRUE}) - {tc_i} <| d_map_t) = ran(d_t)
+    & ran(dom(ideck |> {TRUE}) - {tc_i} <| d_map_c) = ran(d_c)
+    & ran(dom(deck1 |> {TRUE}) <| d_map_t) = ran(d1_t)
+    & ran(dom(deck1 |> {TRUE}) <| d_map_c) = ran(d1_c)
+    & ran(dom(deck2 |> {TRUE}) <| d_map_t) = ran(d2_t)
+    & ran(dom(deck2 |> {TRUE}) <| d_map_c) = ran(d2_c)
 
 INITIALISATION
     tc_i := 0;
