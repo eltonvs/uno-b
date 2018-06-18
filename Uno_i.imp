@@ -3,9 +3,6 @@ REFINES Uno
 
 SEES Cards, Uno_ctx
 
-// Change to an array mapping to boolean
-// Every user has the entire deck (mapped to false), his deck corresponds to the cards mapped to true (the same occurs to the main deck) -- can use a robust solution to all operations too, returning a status with the result
-// Create another machine to generate cards (with a while...)
 CONCRETE_VARIABLES
     tc_i, tc_c,
     ideck, deck1, deck2, d_map_t, d_map_c,
