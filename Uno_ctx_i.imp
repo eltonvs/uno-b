@@ -8,10 +8,6 @@ VALUES
     N_PLAYERS = 2;
     INI_CARDS = 7;
     NUM_CARDS = 54;
-    MAX_CARDS = NUM_CARDS - 1;
-    INITIAL_DECK_T = (0..MAX_CARDS)*{ZERO};
-    INITIAL_DECK_C = (0..MAX_CARDS)*{RED}
-    /*
     INITIAL_DECK_T = {
         0 |-> ZERO, 1 |-> ZERO, 2 |-> ZERO, 3 |-> ZERO, 4 |-> ONE,
         5 |-> ONE, 6 |-> ONE, 7 |-> ONE, 8 |-> TWO, 9 |-> TWO,
@@ -37,6 +33,6 @@ VALUES
         40 |-> RED, 41 |-> GREEN, 42 |-> BLUE, 43 |-> YELLOW, 44 |-> RED,
         45 |-> GREEN, 46 |-> BLUE, 47 |-> YELLOW, 48 |-> RED, 49 |-> GREEN,
         50 |-> BLUE, 51 |-> YELLOW, 52 |-> BLACK, 53 |-> BLACK
-    }*/
+    }
 
 END
